@@ -82,7 +82,7 @@ static const CGFloat YMSNavigationBarOriginalTopSpace = 0.0;
     [super viewDidLayoutSubviews];
 
     if (!self.footerView) {
-        self.albumListTableView.contentInset = UIEdgeInsetsMake(0.0, 0.0, -self.footerViewHeight, 0.0);
+        self.albumListTableView.contentInset = UIEdgeInsetsMake(YMSNavigationBarMaxTopSpace, 0.0, -self.footerViewHeight, 0.0);
         self.footerView = [[UIView alloc] initWithFrame:CGRectMake(0.0, 0.0, CGRectGetWidth(self.view.bounds), self.footerViewHeight)];
         self.footerView.backgroundColor = [UIColor whiteColor];
         self.albumListTableView.tableFooterView = self.footerView;
@@ -175,10 +175,13 @@ static const CGFloat YMSNavigationBarOriginalTopSpace = 0.0;
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
+    CGFloat offset = scrollView.contentOffset.y + scrollView.contentInset.top;
+    CGFloat lastOffset = scrollView.lastContentOffset.y + scrollView.contentInset.top;
     // Measure table view scolling position is between the expectation
-    if (scrollView.contentOffset.y > YMSNavigationBarOriginalTopSpace
+    if (offset > YMSNavigationBarOriginalTopSpace
         && scrollView.contentOffset.y + CGRectGetHeight(scrollView.bounds) < scrollView.contentSize.height - 1 - self.footerViewHeight) {
-        CGFloat topLayoutConstraintConstant = self.navigationBarTopLayoutConstraint.constant - (scrollView.contentOffset.y - scrollView.lastContentOffset.y);
+        CGFloat topLayoutConstraintConstant = self.navigationBarTopLayoutConstraint.constant - (offset - lastOffset);
+
         // When next top constant is longer than maximum
         if (topLayoutConstraintConstant < -YMSNavigationBarMaxTopSpace) {
             self.navigationBarTopLayoutConstraint.constant = -YMSNavigationBarMaxTopSpace;
@@ -207,12 +210,17 @@ static const CGFloat YMSNavigationBarOriginalTopSpace = 0.0;
         && self.navigationBarTopLayoutConstraint.constant < YMSNavigationBarOriginalTopSpace) {
 
         [UIView animateWithDuration:0.3 animations:^{
+            CGFloat offset = 0;
             if (scrollView.scrollDirection == YMSScrollViewScrollDirectionUp) {
+                offset = YMSNavigationBarMaxTopSpace + self.navigationBarTopLayoutConstraint.constant;
                 self.navigationBarTopLayoutConstraint.constant = -YMSNavigationBarMaxTopSpace;
             }
             else if (scrollView.scrollDirection == YMSScrollViewScrollDirectionDown) {
+                offset = self.navigationBarTopLayoutConstraint.constant;
                 self.navigationBarTopLayoutConstraint.constant = YMSNavigationBarOriginalTopSpace;
             }
+
+            [scrollView setContentOffset:CGPointMake(0, scrollView.contentOffset.y + offset) animated:YES];
 
             CGFloat navigationBarAlphaStatus = 1.0 - self.navigationBarTopLayoutConstraint.constant/(YMSNavigationBarOriginalTopSpace - YMSNavigationBarMaxTopSpace);
             self.navigationBar.alpha = navigationBarAlphaStatus;
